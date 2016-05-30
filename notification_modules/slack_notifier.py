@@ -1,7 +1,8 @@
-from pyslack import SlackClient
-from notifier import Notifier
 import json
 import logging
+
+from notifier import Notifier
+from pyslack import SlackClient
 
 
 class SlackNotifier(Notifier):

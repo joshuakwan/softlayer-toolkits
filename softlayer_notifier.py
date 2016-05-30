@@ -1,9 +1,11 @@
 import logging
-import SoftLayer
-import time
-from dateutil import parser
-from datetime import tzinfo, timedelta, datetime
 import os
+import time
+from datetime import tzinfo, timedelta, datetime
+
+import SoftLayer
+from dateutil import parser
+
 from notification_modules.slack_notifier import SlackNotifier
 
 ZERO = timedelta(0)

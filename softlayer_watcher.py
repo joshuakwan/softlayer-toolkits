@@ -3,6 +3,7 @@
 import logging
 import os
 from argparse import ArgumentParser
+
 from softlayer_notifier import SoftLayerNotifier
 
 

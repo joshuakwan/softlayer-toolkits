@@ -1,6 +1,7 @@
 from pyslack import SlackClient
 from notifier import Notifier
 import json
+import logging
 
 
 class SlackNotifier(Notifier):
@@ -8,18 +9,26 @@ class SlackNotifier(Notifier):
         self.slack = SlackClient(token)
         self.channel = channel
 
-    def post_message(self, data, bot_name='SoftLayer Nofitier', as_user=True):
+    def post_message(self, bot_name='SoftLayer Nofitier', as_user=True, **kwargs):
+        type = kwargs.get('type')
+        account = kwargs.get('account')
+        update = kwargs.get('update')
+        update_date = kwargs.get('update_date')
+        href = kwargs.get('href')
+        id = kwargs.get('id')
+        color = kwargs.get('color')
+
         attachments = dict()
         attachments['thumb_url'] = 'https://pbs.twimg.com/profile_images/969317315/CLEAN_sl-logo_400x400.jpg'
-        attachments['color'] = '#439FE0'
+        attachments['color'] = kwargs.get('color')
 
         attachments['title'] = 'Notification of UPDATE: %s %s under %s' % (
-            data.get('type'), data.get('id'), data.get('account'))
-        attachments['title_link'] = data.get('href')
+            type, id, account)
+        attachments['title_link'] = href
         attachments['text'] = 'Update Date: %s\nUpdate Content:%s' % (
-            data.get('update_date'), data.get('update_content'))
+            update_date, update)
 
-        self.log.debug('Slack message: %s' % str(attachments))
+        logging.debug('Slack message: %s' % str(attachments))
         self.slack.chat_post_message(self.channel,
                                      '',
                                      username=bot_name,

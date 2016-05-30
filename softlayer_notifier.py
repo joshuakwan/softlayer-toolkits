@@ -29,6 +29,7 @@ class SoftLayerNotifier(object):
         self.sl_client = SoftLayer.create_client_from_env(username=kwargs.get('sl_user'),
                                                           api_key=kwargs.get('sl_apikey'))
 
+        self.customer_name = self._get_customer_name()
         self.interval = kwargs.get('interval')
 
         self.notifier = None
@@ -57,36 +58,77 @@ class SoftLayerNotifier(object):
         active_tickets = self._get_active_tickets()
 
         # generate update contents for events
-        updated_events, closed_events = self._get_updates(self.sl_events, active_events)
+        new_events, updated_events, closed_events = self._get_updates(self.sl_events, active_events)
 
         # update self.sl_events
         self.sl_events = active_events
 
         # publish the updates
-        for event in updated_events:
-            self.notifier.post_message(event)
-        for event in closed_events:
-            self.notifier.post_message(event)
+        for id in new_events.keys():
+            update = self.sl_client['Notification_Occurrence_Event'].getLastUpdate(id=id)
+            update_date = update['createDate']
+            href = 'https://control.softlayer.com/support/event/details/%s' % updated_events[id]['systemTicketId']
+            self.notifier.post_message(id=id, update=update['contents'], update_date=update_date, href=href,
+                                       type='Event',
+                                       color='good', account=self.customer_name)
+        for id in updated_events.keys():
+            update = self.sl_client['Notification_Occurrence_Event'].getLastUpdate(id=id)
+            update_date = update['createDate']
+            href = 'https://control.softlayer.com/support/event/details/%s' % updated_events[id]['systemTicketId']
+            self.notifier.post_message(id=id, update=update['contents'], update_date=update_date, href=href,
+                                       type='Event',
+                                       color='#439FE0', account=self.customer_name)
+        for id in closed_events.keys():
+            update = self.sl_client['Notification_Occurrence_Event'].getLastUpdate(id=id)
+            update_date = update['createDate']
+            href = 'https://control.softlayer.com/support/event/details/%s' % updated_events[id]['systemTicketId']
+            self.notifier.post_message(id=id, update=update['contents'], update_date=update_date, href=href,
+                                       type='Event',
+                                       color='danger', account=self.customer_name)
 
         # generate update contents for tickets
-        updated_tickets, closed_tickets = self._get_updates(self.sl_tickets, active_tickets)
+        new_tickets, updated_tickets, closed_tickets = self._get_updates(self.sl_tickets, active_tickets)
 
         # update self.sl_tickets
         self.sl_tickets = active_tickets
 
         # publish the updates
-        for event in updated_tickets:
-            self.notifier.post_message(event)
-        for event in closed_tickets:
-            self.notifier.post_message(event)
+        for id in new_tickets.keys():
+            update = self.sl_client['Ticket'].getLastUpdate(id=id)
+            update_date = update['createDate']
+            href = 'https://control.softlayer.com/support/tickets/%s' % id
+            self.notifier.post_message(id=id, update=update['entry'], update_date=update_date, href=href, type='Ticket',
+                                       color='good', account=self.customer_name)
+        for id in updated_tickets.keys():
+            update = self.sl_client['Ticket'].getLastUpdate(id=id)
+            update_date = update['createDate']
+            href = 'https://control.softlayer.com/support/tickets/%s' % id
+            self.notifier.post_message(id=id, update=update['entry'], update_date=update_date, href=href, type='Ticket',
+                                       color='#439FE0', account=self.customer_name)
+        for id in closed_tickets.keys():
+            update = self.sl_client['Ticket'].getLastUpdate(id=id)
+            update_date = update['createDate']
+            href = 'https://control.softlayer.com/support/tickets/%s' % id
+            self.notifier.post_message(id=id, update=update['entry'], update_date=update_date, href=href, type='Ticket',
+                                       color='danger', account=self.customer_name)
 
     def _get_updates(self, objects_earlier, objects_now):
-        updated_objects = []
-        closed_objects = []
+        new_objects = dict()
+        updated_objects = dict()
+        closed_objects = dict()
 
-        # TODO generate the two arrays
+        for i in [id for id in objects_now.keys() if id not in objects_earlier.keys()]:
+            new_objects[i] = objects_now[i]
 
-        return closed_objects, updated_objects
+        for i in [id for id in objects_earlier.keys() if id not in objects_now.keys()]:
+            closed_objects[i] = objects_earlier[i]
+
+        # Iterate thru open tickets to see if there are new updates
+        for id in objects_now.keys():
+            if objects_earlier.get(id) != objects_now.get(id):
+                updated_objects[id] = objects_now[id]
+
+        return new_objects, updated_objects, closed_objects
 
     def _get_customer_name(self):
         return self.sl_client['Account'].getMasterUser().get('companyName')
@@ -94,7 +136,7 @@ class SoftLayerNotifier(object):
     def _get_active_events(self):
         events = self.sl_client['Notification_Occurrence_Event'].getAllObjects()
 
-        active_events = []
+        active_events = dict()
         for event in events:
             end_date = event['endDate']
             if end_date != '':
@@ -102,13 +144,12 @@ class SoftLayerNotifier(object):
                 now = datetime.now(UTC())
                 if (end - now).total_seconds() > 0:
                     event['href'] = 'https://control.softlayer.com/support/event/details/%s' % event['systemTicketId']
-                    active_events.append(event)
+                    active_events[event['id']] = event
 
         return active_events
 
     def _get_active_tickets(self):
-        active_tickets = []
-
-        # TODO get active tickets
-
+        active_tickets = dict()
+        for ticket in self.sl_client['Account'].getOpenTickets():
+            active_tickets[ticket['id']] = ticket
         return active_tickets

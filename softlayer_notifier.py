@@ -67,26 +67,11 @@ class SoftLayerNotifier(object):
 
         # publish the updates
         for id in new_events.keys():
-            update = self.sl_client['Notification_Occurrence_Event'].getLastUpdate(id=id)
-            update_date = update['createDate']
-            href = 'https://control.softlayer.com/support/event/details/%s' % updated_events[id]['systemTicketId']
-            self.notifier.post_message(id=id, update=update['contents'], update_date=update_date, href=href,
-                                       type='Event',
-                                       color='good', account=self.customer_name)
+            self._publish_update(id, 'Event', 'good', self.customer_name)
         for id in updated_events.keys():
-            update = self.sl_client['Notification_Occurrence_Event'].getLastUpdate(id=id)
-            update_date = update['createDate']
-            href = 'https://control.softlayer.com/support/event/details/%s' % updated_events[id]['systemTicketId']
-            self.notifier.post_message(id=id, update=update['contents'], update_date=update_date, href=href,
-                                       type='Event',
-                                       color='#439FE0', account=self.customer_name)
+            self._publish_update(id, 'Event', '#439FE0', self.customer_name)
         for id in closed_events.keys():
-            update = self.sl_client['Notification_Occurrence_Event'].getLastUpdate(id=id)
-            update_date = update['createDate']
-            href = 'https://control.softlayer.com/support/event/details/%s' % updated_events[id]['systemTicketId']
-            self.notifier.post_message(id=id, update=update['contents'], update_date=update_date, href=href,
-                                       type='Event',
-                                       color='danger', account=self.customer_name)
+            self._publish_update(id, 'Event', 'danger', self.customer_name)
 
         # generate update contents for tickets
         new_tickets, updated_tickets, closed_tickets = self._get_updates(self.sl_tickets, active_tickets)
@@ -96,23 +81,27 @@ class SoftLayerNotifier(object):
 
         # publish the updates
         for id in new_tickets.keys():
-            update = self.sl_client['Ticket'].getLastUpdate(id=id)
-            update_date = update['createDate']
-            href = 'https://control.softlayer.com/support/tickets/%s' % id
-            self.notifier.post_message(id=id, update=update['entry'], update_date=update_date, href=href, type='Ticket',
-                                       color='good', account=self.customer_name)
+            self._publish_update(id, 'Ticket', 'good', self.customer_name)
         for id in updated_tickets.keys():
-            update = self.sl_client['Ticket'].getLastUpdate(id=id)
-            update_date = update['createDate']
-            href = 'https://control.softlayer.com/support/tickets/%s' % id
-            self.notifier.post_message(id=id, update=update['entry'], update_date=update_date, href=href, type='Ticket',
-                                       color='#439FE0', account=self.customer_name)
+            self._publish_update(id, 'Ticket', '#439FE0', self.customer_name)
         for id in closed_tickets.keys():
-            update = self.sl_client['Ticket'].getLastUpdate(id=id)
-            update_date = update['createDate']
-            href = 'https://control.softlayer.com/support/tickets/%s' % id
-            self.notifier.post_message(id=id, update=update['entry'], update_date=update_date, href=href, type='Ticket',
-                                       color='danger', account=self.customer_name)
+            self._publish_update(id, 'Ticket', 'danger', self.customer_name)
+
+    def _publish_update(self, id, type, color, account):
+        if type == 'Ticket':
+            sl_service_key = 'Ticket'
+            base_href = 'https://control.softlayer.com/support/tickets/%s'
+            update_key='entry'
+        elif type == 'Event':
+            sl_service_key = 'Notification_Occurrence_Event'
+            base_href = 'https://control.softlayer.com/support/event/details/%s'
+            update_key = 'contents'
+
+        update = self.sl_client[sl_service_key].getLastUpdate(id=id)
+        update_date = update['createDate']
+        href = base_href % id
+        self.notifier.post_message(id=id, update=update[update_key], update_date=update_date, href=href, type=type,
+                                   color=color, account=account)
 
     def _get_updates(self, objects_earlier, objects_now):
         new_objects = dict()

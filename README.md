@@ -8,12 +8,12 @@ SoftLayer accounts and publish to somewhere.
 * Polling events/tickets updates from SoftLayer.
 * Only 1 single SoftLayer account is supported for 1 instance of this tool, which means you have to launch multiple processes in order to watch on a bunch of SoftLayer accounts.
 * Only **unplannned** events are supported now.
+* Support graceful ctrl+c shutdown.
 
 # TODOs
 
 * Serialize current states of events/tickets into disk and rebuild them when the tool is restarted.
 * Handle exceptions.
-* Support graceful shutdown.
 * Support **planned** events.
 * Implement a watch dog to watch on the watchers.
 

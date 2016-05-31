@@ -2,6 +2,8 @@
 
 import logging
 import os
+import signal
+import sys
 from argparse import ArgumentParser
 
 from softlayer_notifier import SoftLayerNotifier
@@ -11,6 +13,23 @@ def setup_logging():
     logging.basicConfig(level=logging.DEBUG,
                         format='%(asctime)s %(levelname)s %(name)s: '
                                '%(message)s')
+
+
+def exit_gracefully(signum, frame):
+    # restore the original signal handler as otherwise evil things will happen
+    # in raw_input when CTRL+C is pressed, and our signal handler is not re-entrant
+    signal.signal(signal.SIGINT, original_sigint)
+
+    try:
+        if raw_input("\nPress y to quit. (y/n)  ").lower().startswith('y'):
+            sys.exit(1)
+
+    except KeyboardInterrupt:
+        print("Ok ok, quitting")
+        sys.exit(1)
+
+    # restore the exit gracefully handler here
+    signal.signal(signal.SIGINT, exit_gracefully)
 
 
 parser = ArgumentParser()
@@ -63,6 +82,8 @@ def parse_args():
 
 if __name__ == '__main__':
     setup_logging()
+    original_sigint = signal.getsignal(signal.SIGINT)
+    signal.signal(signal.SIGINT, exit_gracefully)
     setup_parser()
     args = parse_args()
 

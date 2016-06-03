@@ -1,6 +1,7 @@
 import logging
 import os
 import time
+import json
 from datetime import tzinfo, timedelta, datetime
 
 import SoftLayer
@@ -31,6 +32,9 @@ class SoftLayerNotifier(object):
         self.sl_client = SoftLayer.create_client_from_env(username=kwargs.get('sl_user'),
                                                           api_key=kwargs.get('sl_apikey'))
 
+        self.data_filename_prefix = kwargs.get('sl_user')
+        self._deserialize_data()
+
         self.customer_name = self._get_customer_name()
         self.interval = kwargs.get('interval')
 
@@ -53,7 +57,24 @@ class SoftLayerNotifier(object):
         # TODO to implement the quit function
         while True:
             self._handle_updates()
+            self._serialize_data()
             time.sleep(self.interval * 60)
+
+    def _serialize_data(self):
+        with open(self.data_filename_prefix + '_events', 'w') as f:
+            f.write(json.dumps(self.sl_events))
+        with open(self.data_filename_prefix + '_tickets', 'w') as f:
+            f.write(json.dumps(self.sl_events))
+
+    def _deserialize_data(self):
+        filename_event = self.data_filename_prefix + '_events'
+        if os.path.exists(filename_event):
+            with open(filename_event, 'r') as f:
+                self.sl_events = json.loads(f.read())
+        filename_ticket = self.data_filename_prefix + '_tickets'
+        if os.path.exists(filename_ticket):
+            with open(filename_ticket, 'r') as f:
+                self.sl_tickets = json.loads(f.read())
 
     def _handle_updates(self):
         active_events = self._get_active_events()
@@ -91,7 +112,7 @@ class SoftLayerNotifier(object):
         if type == 'Ticket':
             sl_service_key = 'Ticket'
             base_href = 'https://control.softlayer.com/support/tickets/%s'
-            update_key='entry'
+            update_key = 'entry'
         elif type == 'Event':
             sl_service_key = 'Notification_Occurrence_Event'
             base_href = 'https://control.softlayer.com/support/event/details/%s'

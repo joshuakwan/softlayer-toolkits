@@ -1,7 +1,7 @@
 import logging
 import os
 import time
-import json
+import pickle
 from datetime import tzinfo, timedelta, datetime
 
 import SoftLayer
@@ -54,7 +54,6 @@ class SoftLayerNotifier(object):
         self.start()
 
     def start(self):
-        # TODO to implement the quit function
         while True:
             self._handle_updates()
             self._serialize_data()
@@ -62,19 +61,19 @@ class SoftLayerNotifier(object):
 
     def _serialize_data(self):
         with open(self.data_filename_prefix + '_events', 'w') as f:
-            f.write(json.dumps(self.sl_events))
+            f.write(pickle.dumps(self.sl_events))
         with open(self.data_filename_prefix + '_tickets', 'w') as f:
-            f.write(json.dumps(self.sl_events))
+            f.write(pickle.dumps(self.sl_tickets))
 
     def _deserialize_data(self):
         filename_event = self.data_filename_prefix + '_events'
         if os.path.exists(filename_event):
             with open(filename_event, 'r') as f:
-                self.sl_events = json.loads(f.read())
+                self.sl_events = pickle.loads(f.read())
         filename_ticket = self.data_filename_prefix + '_tickets'
         if os.path.exists(filename_ticket):
             with open(filename_ticket, 'r') as f:
-                self.sl_tickets = json.loads(f.read())
+                self.sl_tickets = pickle.loads(f.read())
 
     def _handle_updates(self):
         active_events = self._get_active_events()
@@ -137,7 +136,7 @@ class SoftLayerNotifier(object):
 
         # Iterate thru open tickets to see if there are new updates
         for id in objects_now.keys():
-            if objects_earlier.get(id) != objects_now.get(id):
+            if id not in new_objects.keys() and objects_earlier.get(id) != objects_now.get(id):
                 updated_objects[id] = objects_now[id]
 
         return new_objects, updated_objects, closed_objects

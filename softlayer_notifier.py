@@ -101,10 +101,16 @@ class SoftLayerNotifier(object):
 
         # publish the updates
         for id in new_tickets.keys():
+            if 'MONITORING' in new_tickets[id]['title']:
+                continue
             self._publish_update(id, 'Ticket', 'good', self.customer_name)
         for id in updated_tickets.keys():
+            if 'MONITORING' in updated_tickets[id]['title']:
+                continue
             self._publish_update(id, 'Ticket', '#439FE0', self.customer_name)
         for id in closed_tickets.keys():
+            if 'MONITORING' in closed_tickets[id]['title']:
+                continue
             self._publish_update(id, 'Ticket', 'danger', self.customer_name)
 
     def _publish_update(self, id, type, color, account):

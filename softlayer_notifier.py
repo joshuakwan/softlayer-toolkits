@@ -57,7 +57,7 @@ class SoftLayerNotifier(object):
         while True:
             self._handle_updates()
             self._serialize_data()
-            time.sleep(self.interval * 60)
+            time.sleep(float(self.interval * 60))
 
     def _serialize_data(self):
         with open(self.data_filename_prefix + '_events', 'w') as f:
